@@ -5,8 +5,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-// Erzeugt ein Array mit Zahlen im Bereich [start, ende] mit adaptiver Schrittweite
-void konvertieren(int start, int ende, int **arr, int *len)
+// Erzeugt ein nay mit Zahn_laenge im Bereich [start, ende] mit adaptiver Schrittweite
+void konvertieren(int start, int ende, int **n, int *n_laenge)
 {
 	if (ende == 0) {
 		printf("Fehler: -n <zahl> muss angegeben sein. Benutzung siehe -h\n");
@@ -19,17 +19,17 @@ void konvertieren(int start, int ende, int **arr, int *len)
     }
 	
 	// maximal 100 Messwerte
-    int *temp = malloc(100 * sizeof(int));
+    int *zwischen = malloc(100 * sizeof(int));
 
     int letztes = start;
     int zweier = 1;
-    int i = 0;
-
-    temp[i] = start;
+    
+	int i = 0;
+    zwischen[i] = start;
     i = i + 1;
 
 	int schritt;
-	int naechstes;
+	int aktuell;
 	
     while (letztes < ende) {
         if      (letztes <= 9)     schritt = 4;
@@ -38,27 +38,28 @@ void konvertieren(int start, int ende, int **arr, int *len)
         else if (letztes <= 9999)  schritt = 500;
         else                       schritt = 1000;
 
-        naechstes = letztes + schritt;
+        aktuell = letztes + schritt;
 
+		// Matrixen mit 2^x Größe immer hinzufügen
 		if (zweier > letztes && zweier <= ende) {
-			if (zweier < naechstes) {
-				temp[i] = zweier;
+			if (zweier < aktuell) {
+				zwischen[i] = zweier;
 				i = i + 1;
-				letztes       = zweier;
+				letztes = zweier;
 				zweier = zweier * 2;
 				continue;
 			}
 		}
 
-        if (naechstes >= ende) {
-            temp[i] = ende;
+        if (aktuell >= ende) {
+            zwischen[i] = ende;
             i = i + 1;
             break;
         }
 
-        temp[i] = naechstes;
+        zwischen[i] = aktuell;
         i = i + 1;
-        letztes = naechstes;
+        letztes = aktuell;
 		
 		if (i > 100)
 		{
@@ -67,20 +68,20 @@ void konvertieren(int start, int ende, int **arr, int *len)
 		}
     }
 
-    *arr = temp;
-    *len = i;
+    *n = zwischen;
+    *n_laenge = i;
 }
 
 
 // Speichert Prozessorinfo und Messdaten in eine Datei
-void speichern(const char *dateiname, int *n, double *laufzeit, int len, int threads) {
+void speichern(const char *dateiname, int *n, double *laufzeit, int n_laenge, int threads) {
 	FILE *cpu = fopen("/proc/cpuinfo", "r");
 
 	char line[256];
 	char name[80] = "";
 	int logical = 0, physical = 0;
 
-	// Lesen aller zeilen
+	// Lesen aller zein_laenge
 	while (fgets(line, sizeof(line), cpu)) {
 		// Prozessormodell lesen
 		if (!name[0] && strncmp(line, "model name", 10) == 0) {
@@ -123,7 +124,7 @@ void speichern(const char *dateiname, int *n, double *laufzeit, int len, int thr
     }
 
     // Messdaten anhängen
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < n_laenge; i++) {
         fprintf(f, "%u,%u,%.6f\n", threads, n[i], laufzeit[i]);
     }
     fclose(f);
