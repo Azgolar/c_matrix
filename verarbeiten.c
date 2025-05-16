@@ -6,46 +6,49 @@
 #include <errno.h>
 
 // Erzeugt ein Array mit Zahlen im Bereich [start, ende] mit adaptiver Schrittweite
-void konvertieren(unsigned int start, unsigned int ende, unsigned int **arr, size_t *len)
+void konvertieren(int start, int ende, int **arr, int *len)
 {
     size_t max_steps = 100;
-    unsigned int *temp = malloc(max_steps * sizeof(unsigned int));
+    int *temp = malloc(max_steps * sizeof(int));
 
-    unsigned int last = start;
-    unsigned int next_pow2 = 1;
-    size_t i = 0;
+    int letztes = start;
+    int zweier = 1;
+    int i = 0;
 
     temp[i] = start;
     i = i + 1;
 
-    while (last < ende) {
-        unsigned int step;
-        if      (last <= 9)     step = 4;
-        else if (last <= 99)    step = 6;
-        else if (last <= 999)   step = 100;
-        else if (last <= 9999)  step = 500;
-        else                    step = 1000;
+	int schritt;
+	int naechstes;
+	
+    while (letztes < ende) {
+        if      (letztes <= 9)     schritt = 4;
+        else if (letztes <= 99)    schritt = 6;
+        else if (letztes <= 999)   schritt = 100;
+        else if (letztes <= 9999)  schritt = 500;
+        else                       schritt = 1000;
 
-        unsigned int next = last + step;
+        naechstes = letztes + schritt;
 
-		if (next_pow2 > last && next_pow2 <= ende) {
-			if (next_pow2 < next) {
-				temp[i++] = next_pow2;
-				last       = next_pow2;
-				next_pow2 <<= 1;
+		if (zweier > letztes && zweier <= ende) {
+			if (zweier < naechstes) {
+				temp[i] = zweier;
+				i = i + 1;
+				letztes       = zweier;
+				zweier = zweier * 2;
 				continue;
 			}
 		}
 
-        if (next >= ende) {
+        if (naechstes >= ende) {
             temp[i] = ende;
-            i++;
+            i = i + 1;
             break;
         }
 
-        temp[i] = next;
-        i++;
-        last = next;
+        temp[i] = naechstes;
+        i = i + 1;
+        letztes = naechstes;
 		
 		if (i > 100)
 		{
@@ -60,12 +63,12 @@ void konvertieren(unsigned int start, unsigned int ende, unsigned int **arr, siz
 
 
 // Speichert Prozessorinfo und Messdaten in eine Datei
-void speichern(const char *filename, unsigned int *n, double *laufzeit, size_t len, unsigned int threads) {
+void speichern(const char *filename, int *n, double *laufzeit, int len, int threads) {
 	FILE *cpu = fopen("/proc/cpuinfo", "r");
 
 	char line[256];
 	char model_name[256] = "";
-	unsigned int logical = 0, physical = 0;
+	int logical = 0, physical = 0;
 
 	while (fgets(line, sizeof(line), cpu)) {
 		if (!model_name[0] && strncmp(line, "model name", 10) == 0) {
@@ -83,7 +86,7 @@ void speichern(const char *filename, unsigned int *n, double *laufzeit, size_t l
 
 	fclose(cpu);
 
-	unsigned int hyperthreading = logical / physical;
+	int hyperthreading = logical / physical;
 
     // Prüfen, ob Datei existiert
     struct stat st;
@@ -101,7 +104,7 @@ void speichern(const char *filename, unsigned int *n, double *laufzeit, size_t l
     }
 
     // Messdaten anhängen
-    for (size_t i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         fprintf(f, "%u,%u,%.6f\n", threads, n[i], laufzeit[i]);
     }
     fclose(f);

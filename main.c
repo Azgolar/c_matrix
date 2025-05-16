@@ -100,19 +100,18 @@ int main(int argc, char *argv[]) {
         datei = buf;
     }
 	
-	if (n == 0) {
+    int max_n = strtoul(n_opt, NULL, 10);
+	if (max_n == 0) {
         printf("Fehler: -n <zahl> muss angegeben sein. Benutzung siehe -h\n");
         return 1;
     }
-
-    unsigned int max_n = strtoul(n_opt, NULL, 10);
     if (max_n < 6) {
         printf("Fehler: -n muss >= 6 sein\n");
         return 1;
     }
 
-    unsigned int *n_vec = NULL;
-    size_t n_len = 0;
+    int *n_vec = NULL;
+    int n_len = 0;
     konvertieren(6, max_n, &n_vec, &n_len);
 
     int max_threads =  (int) sysconf(_SC_NPROCESSORS_ONLN);
@@ -181,7 +180,7 @@ int main(int argc, char *argv[]) {
         }
 
         /* Ergebnisse speichern */
-        speichern(datei, n_vec, dauern, n_len, (unsigned int)threads);
+        speichern(datei, n_vec, dauern, n_len, threads);
         free(dauern);
     }
 
