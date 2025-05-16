@@ -23,7 +23,7 @@ void sequentiell(int **a, int **b, int **c, int n) {
         for (int j = 0; j < n; j++) {
             int summe = 0;
             for (int k = 0; k < n; k++) {
-                summe += a[i][k] * b[k][j];
+                summe = summe + a[i][k] * b[k][j];
             }
             c[i][j] = summe;
         }
@@ -31,14 +31,14 @@ void sequentiell(int **a, int **b, int **c, int n) {
 }
 
 void* parallel_multiplizieren(void *arg) {
-    daten *d = (daten*)arg;
-    for (int i = d->anfang; i < d->ende; i++) {
-        for (int j = 0; j < d->n; j++) {
+    daten *inhalt = (daten*)arg;
+    for (int i = inhalt->anfang; i < inhalt->ende; i++) {
+        for (int j = 0; j < inhalt->n; j++) {
             int summe = 0;
-            for (int k = 0; k < d->n; k++) {
-                summe += d->a[i][k] * d->b[k][j];
+            for (int k = 0; k < inhalt->n; k++) {
+                summe = summe + inhalt->a[i][k] * inhalt->b[k][j];
             }
-            d->c[i][j] = summe;
+            inhalt->c[i][j] = summe;
         }
     }
     return NULL;
@@ -48,44 +48,30 @@ void parallel_multiply(int **a, int **b, int **c, int n, int num_threads) {
     pthread_t threads[num_threads];
     daten args[num_threads];
     int base = n / num_threads;
-    int rem  = n % num_threads;
+    int rest  = n % num_threads;
     int start = 0;
 
-    for (int t = 0; t < num_threads; t++) {
-        args[t].anfang = start;
-        args[t].ende   = start + base + (rem-- > 0 ? 1 : 0);
-        args[t].n      = n;
-        args[t].a      = a;
-        args[t].b      = b;
-        args[t].c      = c;
-        start = args[t].ende;
+    for (int i = 0; i < num_threads; i++) {
+		
+		if (rest > 0) {
+			args[i].ende = start + base + 1;
+			rest = rest - 1;
+		} else {
+			args[i].ende = start + base;
+		}
+        args[i].anfang = start;
+        args[i].n      = n;
+        args[i].a      = a;
+        args[i].b      = b;
+        args[i].c      = c;
+        start = args[i].ende;
     }
-    for (int t = 0; t < num_threads; t++)
-        pthread_create(&threads[t], NULL, parallel_multiplizieren, &args[t]);
-    for (int t = 0; t < num_threads; t++)
-        pthread_join(threads[t], NULL);
-}
-
-static int** alloc_matrix(int n) {
-    int **m = malloc(n * sizeof *m);
-    if (!m) {
-        perror("malloc rows");
-        exit(EXIT_FAILURE);
-    }
-    for (int i = 0; i < n; i++) {
-        m[i] = malloc(n * sizeof *m[i]);
-        if (!m[i]) {
-            perror("malloc row");
-            exit(EXIT_FAILURE);
-        }
-    }
-    return m;
-}
-
-static void free_matrix(int **m, int n) {
-    for (int i = 0; i < n; i++)
-        free(m[i]);
-    free(m);
+    for (int j = 0; j < num_threads; j++) {
+        pthread_create(&threads[j], NULL, parallel_multiplizieren, &args[j]);
+	}
+    for (int k = 0; k < num_threads; k++) {
+        pthread_join(threads[k], NULL);
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -133,9 +119,17 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < n_laenge; i++) {
             int aktuell = n[i];
-            int **a = alloc_matrix(aktuell);
-            int **b = alloc_matrix(aktuell);
-            int **c = alloc_matrix(aktuell);
+            int **a =  malloc(aktuell * sizeof(int*));
+            int **b =  malloc(aktuell * sizeof(int*));
+            int **c =  malloc(aktuell * sizeof(int*));
+			
+			// Speicher für Reihen allokieren
+			for (int i = 0; i < aktuell; i++) {
+				a[i] = malloc(aktuell * sizeof *a[i]);
+				b[i] = malloc(aktuell * sizeof *b[i]);
+				c[i] = malloc(aktuell * sizeof *c[i]);
+			}
+
 
             /* Initialisieren */
             for (int i = 0; i < aktuell; i++)
@@ -155,7 +149,10 @@ int main(int argc, char *argv[]) {
                         + (t1.tv_nsec - t0.tv_nsec)/1e6;
 
             if (debug) {
-                int **c_sequentiell = alloc_matrix(aktuell);
+                int **c_sequentiell = malloc(aktuell * sizeof *c_sequentiell);
+				for (int r = 0; r < aktuell; r++) {
+					c_sequentiell[r] = malloc(aktuell * sizeof *c_sequentiell[r]);
+				}
                 sequentiell(a, b, c_sequentiell, aktuell);
 
                 int fehler = 0;
@@ -172,13 +169,22 @@ int main(int argc, char *argv[]) {
 				}
 				else {
                     printf("Ergebnis ist falsch");
-                free_matrix(c_sequentiell, aktuell);
+					
+                for (int i = 0; i < aktuell; ++i) {
+					free(c_sequentiell[i]); 
+				}
+				free(c_sequentiell); 
 				}
             }
 
-            free_matrix(a, aktuell);
-            free_matrix(b, aktuell);
-            free_matrix(c, aktuell);
+            for (int i = 0; i < aktuell; ++i) {
+				free(a[i]);
+				free(b[i]); 
+				free(c[i]); 				
+			}
+			free(a);
+			free(b);
+			free(c);
         }
 
         speichern(datei, n, dauern, n_laenge, threads);
