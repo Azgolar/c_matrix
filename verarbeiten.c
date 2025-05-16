@@ -8,8 +8,18 @@
 // Erzeugt ein Array mit Zahlen im Bereich [start, ende] mit adaptiver Schrittweite
 void konvertieren(int start, int ende, int **arr, int *len)
 {
-    size_t max_steps = 100;
-    int *temp = malloc(max_steps * sizeof(int));
+	if (ende == 0) {
+		printf("Fehler: -n <zahl> muss angegeben sein. Benutzung siehe -h\n");
+        exit(1);
+    }
+	
+    if (ende < 6) {
+        printf("Fehler: -n muss >= 6 sein\n");
+        exit(1);
+    }
+	
+	// maximal 100 Messwerte
+    int *temp = malloc(100 * sizeof(int));
 
     int letztes = start;
     int zweier = 1;
@@ -63,22 +73,26 @@ void konvertieren(int start, int ende, int **arr, int *len)
 
 
 // Speichert Prozessorinfo und Messdaten in eine Datei
-void speichern(const char *filename, int *n, double *laufzeit, int len, int threads) {
+void speichern(const char *dateiname, int *n, double *laufzeit, int len, int threads) {
 	FILE *cpu = fopen("/proc/cpuinfo", "r");
 
 	char line[256];
-	char model_name[256] = "";
+	char name[80] = "";
 	int logical = 0, physical = 0;
 
+	// Lesen aller zeilen
 	while (fgets(line, sizeof(line), cpu)) {
-		if (!model_name[0] && strncmp(line, "model name", 10) == 0) {
+		// Prozessormodell lesen
+		if (!name[0] && strncmp(line, "model name", 10) == 0) {
 			char *p = strchr(line, ':') + 2;  
-			strcpy(model_name, p);
-			model_name[strcspn(model_name, "\n")] = '\0';
+			strcpy(name, p);
+			name[strcspn(name, "\n")] = '\0';
 		}
+		// vorkommen "processor" ist identisch zur Anzahl der logischen Kerne 
 		if (strncmp(line, "processor", 9) == 0) {
-			logical++;
+			logical = logical + 1;
 		}
+		// Anzahl der physischen Kerne aus Zeile lesen
 		if (!physical && strncmp(line, "cpu cores", 9) == 0) {
 			physical = atoi(strchr(line, ':') + 1);
 		}
@@ -86,21 +100,26 @@ void speichern(const char *filename, int *n, double *laufzeit, int len, int thre
 
 	fclose(cpu);
 
-	int hyperthreading = logical / physical;
+	int hyperthreading = 0;
+	if (physical > 0)
+	{
+		hyperthreading = logical / physical;
+	}
 
     // Prüfen, ob Datei existiert
-    struct stat st;
-    int exists = (stat(filename, &st) == 0);
+	// stat ist in stat.h enthalt und hat die Metadaten der Datei
+    struct stat metadaten;
+    int exists = (stat(dateiname, &metadaten) == 0);
 
-    FILE *f = fopen(filename, "a");
+    FILE *f = fopen(dateiname, "a");
     if (!f) {
-        fprintf(stderr, "Fehler beim Öffnen der Datei %s: %s\n", filename, strerror(errno));
+        printf("Fehler beim Öffnen der Datei zum Speichern der Daten");
         exit(1);
     }
 
     // Kopfzeile nur schreiben, wenn Datei neu
     if (!exists) {
-        fprintf(f, "%s,%u,%u,%u\n", model_name, logical, physical, hyperthreading);
+        fprintf(f, "%s,%u,%u,%u\n", dateiname, logical, physical, hyperthreading);
     }
 
     // Messdaten anhängen
@@ -111,10 +130,10 @@ void speichern(const char *filename, int *n, double *laufzeit, int len, int thre
 
     if (exists)
 	{
-		printf("Daten erfolgreich angehängt an %s.\n", filename);
+		printf("Daten erfolgreich angehängt an %s.\n", dateiname);
 	}
     else
 	{
-		printf("Daten erfolgreich in %s geschrieben.\n", filename);
+		printf("Daten erfolgreich in %s geschrieben.\n", dateiname);
 	}
 }

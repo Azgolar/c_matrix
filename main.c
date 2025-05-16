@@ -101,14 +101,6 @@ int main(int argc, char *argv[]) {
     }
 	
     int max_n = strtoul(n_opt, NULL, 10);
-	if (max_n == 0) {
-        printf("Fehler: -n <zahl> muss angegeben sein. Benutzung siehe -h\n");
-        return 1;
-    }
-    if (max_n < 6) {
-        printf("Fehler: -n muss >= 6 sein\n");
-        return 1;
-    }
 
     int *n_vec = NULL;
     int n_len = 0;
